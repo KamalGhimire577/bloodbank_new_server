@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    // File Layout - UNCOMMENT AND UPDATE THESE
+    "rootDir": "./",
+    "outDir": "./dist",
+
+    // Environment Settings
+    "module": "nodenext",
+    "target": "esnext",
+    "types": ["node"],
+    "lib": ["esnext"],
+
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    // Decorators Support (required for sequelize-typescript)
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+
+    // Recommended Options
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+
+    // Add these for better compatibility
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    // Allow importing TypeScript extensions directly
+    // "allowImportingTsExtensions": true
+  },
+  // Add these to specify which files to compile
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
