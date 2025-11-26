@@ -80,31 +80,7 @@ export const insertBloodRequest = async (
 /**
  * GET ALL BLOOD REQUESTS
  */
-export const getAllBloodRequests = async (
-  req: IextendedRequest,
-  res: Response
-) => {
-  try {
-    const requests = await sequelize.query(
-      `
-      SELECT * FROM blood_request 
-      ORDER BY createdAt DESC
-      `,
-      { type: QueryTypes.SELECT }
-    );
 
-    return res.status(200).json({
-      total: requests.length,
-      requests,
-    });
-  } catch (error) {
-    console.error("Error fetching all blood requests:", error);
-    res.status(500).json({
-      message: "Something went wrong",
-      error: (error as Error).message,
-    });
-  }
-};
 
 /**
  * FIND BLOOD REQUESTS BY DONOR USER ID
@@ -300,3 +276,5 @@ export const findBloodRequestsByUserId = async (
     });
   }
 };
+
+

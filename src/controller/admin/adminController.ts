@@ -8,7 +8,7 @@ import type { IextendedRequest } from "../../middleware/types.js";
  */
 export const selectAllUser = async (req: Request, res: Response) => {
   try {
-    const users = await sequelize.query(`SELECT * FROM users`, {
+    const users = await sequelize.query(`SELECT * FROM users WHERE role ='user'`, {
       type: QueryTypes.SELECT,
     });
     res.status(200).json({
@@ -29,9 +29,20 @@ export const selectAllUser = async (req: Request, res: Response) => {
  */
 export const selectAllDonor = async (req: Request, res: Response) => {
   try {
-    const donors = await sequelize.query(`SELECT * FROM donor`, {
-      type: QueryTypes.SELECT,
-    });
+    const donors = await sequelize.query(
+      `SELECT 
+          d.*, 
+          u.userName, 
+          u.email, 
+          u.phoneNumber, 
+          u.role
+       FROM donor d
+       INNER JOIN users u 
+          ON d.user_id = u.id
+          AND u.role = 'donor'`,
+      { type: QueryTypes.SELECT }
+    );
+
     res.status(200).json({
       message: "All donors fetched successfully",
       data: donors,
@@ -45,49 +56,119 @@ export const selectAllDonor = async (req: Request, res: Response) => {
   }
 };
 
+
 /**
  * Get all completed donations
  */
-export const selectAllcompleateDonation = async (req: Request, res: Response) => {
+export const selectAllCompleteDonation = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const donations = await sequelize.query(
-      `SELECT * FROM blood_request WHERE status = 'completed'`,
+      `
+      SELECT 
+        br.id,
+        br.updatedAt as completed_date,
+        br.urgent,
+        br.status,
+        br.requester_name,
+        br.requester_phone,
+        br.requester_address,
+        br.blood_group,
+
+        -- requester info
+        requester.userName AS requesterUserName,
+        requester.email AS requesterEmail,
+
+        -- donor info
+        donoruser.userName AS donorName,
+        donoruser.email AS donorEmail,
+        donoruser.phoneNumber AS donorPhone,
+        d.bloodgroup AS donorBloodGroup
+
+      FROM blood_request br
+      LEFT JOIN users requester 
+        ON br.requestor_id = requester.id
+      LEFT JOIN donor d 
+        ON br.donor_id = d.id
+      LEFT JOIN users donoruser 
+        ON d.user_id = donoruser.id
+
+      WHERE br.status = 'completed'
+      ORDER BY br.updatedAt DESC;
+      `,
       { type: QueryTypes.SELECT }
     );
+
     res.status(200).json({
-      message: "All completed donations fetched successfully",
+      message: "Completed donations fetched successfully",
       data: donations,
     });
   } catch (error) {
     console.error("Error fetching donations:", error);
     res.status(500).json({
       message: "Failed to fetch donations",
-      error: (error as Error).message,
     });
   }
 };
 
+
 /**
  * Get all blood requests
  */
-export const selectAllBloodRequest = async (req: Request, res: Response) => {
+export const selectAllBloodRequest = async (
+  req: IextendedRequest,
+  res: Response
+) => {
   try {
-    const bloodRequests = await sequelize.query(`SELECT * FROM blood_request`, {
-      type: QueryTypes.SELECT,
-    });
+    const bloodRequests = await sequelize.query(
+      `
+      SELECT 
+        br.id,
+        br.createdAt as request_date,
+        br.urgent,
+        br.status,
+        br.requester_name,
+        br.requester_phone,
+        br.requester_address,
+        br.blood_group,
+
+        -- requester info
+        requester.userName AS requesterUserName,
+        requester.email AS requesterEmail,
+
+        -- donor info (nullable)
+        donoruser.userName AS donorName,
+        donoruser.email AS donorEmail,
+        donoruser.phoneNumber AS donorPhone,
+        d.bloodgroup AS donorBloodGroup
+
+      FROM blood_request br
+      LEFT JOIN users requester 
+        ON br.requestor_id = requester.id
+      LEFT JOIN donor d 
+        ON br.donor_id = d.id
+      LEFT JOIN users donoruser 
+        ON d.user_id = donoruser.id
+
+      WHERE br.status != 'completed'
+      ORDER BY br.createdAt DESC;
+      `,
+      { type: QueryTypes.SELECT }
+    );
+
     res.status(200).json({
-      message: "All blood requests fetched successfully",
+      message: "Blood requests fetched successfully",
       data: bloodRequests,
     });
   } catch (error) {
     console.error("Error fetching blood requests:", error);
     res.status(500).json({
       message: "Failed to fetch blood requests",
-      error: (error as Error).message,
     });
   }
 };
-
 /**
  * Update blood request status
  */
@@ -121,7 +202,7 @@ export const deleteUser = async (req: IextendedRequest, res: Response) => {
     const { id } = req.params; // user id to delete
     if (!id) return res.status(400).json({ message: "User ID is required" });
 
-    await sequelize.query(`DELETE FROM user WHERE id = ?`, {
+    await sequelize.query(`DELETE FROM users WHERE id = ?`, {
       replacements: [id],
       type: QueryTypes.DELETE,
     });
@@ -148,8 +229,17 @@ export const deleteDonor = async (req: IextendedRequest, res: Response) => {
       replacements: [id],
       type: QueryTypes.DELETE,
     });
-
-    res.status(200).json({ message: `Donor ${id} deleted successfully` });
+   await sequelize.query(
+     `UPDATE users
+   SET role = 'user'
+   WHERE id = ?
+   AND role = 'donor'`,
+     {
+       replacements: [id],
+       type: QueryTypes.UPDATE,
+     }
+   );
+res.status(200).json({ message: `Donor ${id} deleted successfully` });
   } catch (error) {
     console.error("Error deleting donor:", error);
     res.status(500).json({
@@ -162,38 +252,25 @@ export const deleteDonor = async (req: IextendedRequest, res: Response) => {
 /**
  * Delete all blood requests of a user or donor
  */
-export const deleteBloodRequests = async (
-  req: IextendedRequest,
-  res: Response
-) => {
+export const deleteBloodRequests = async (req: Request, res: Response) => {
   try {
-    const { userId, donorId } = req.body; // either userId or donorId must be provided
+    const { id } = req.params;
+    if (!id)
+      return res.status(400).json({ message: "Blood request ID is required" });
 
-    if (!userId && !donorId) {
-      return res
-        .status(400)
-        .json({ message: "Provide either userId or donorId" });
-    }
+    await sequelize.query(`DELETE FROM blood_request WHERE id = ?`, {
+      replacements: [id],
+      type: QueryTypes.DELETE,
+    });
 
-    if (userId) {
-      await sequelize.query(
-        `DELETE FROM blood_request WHERE requestor_id = ?`,
-        { replacements: [userId], type: QueryTypes.DELETE }
-      );
-    }
-
-    if (donorId) {
-      await sequelize.query(`DELETE FROM blood_request WHERE donor_id = ?`, {
-        replacements: [donorId],
-        type: QueryTypes.DELETE,
-      });
-    }
-
-    res.status(200).json({ message: "Blood requests deleted successfully" });
+    res
+      .status(200)
+      .json({ message: `Blood request ${id} deleted successfully` });
   } catch (error) {
-    console.error("Error deleting blood requests:", error);
+    console.error("Error deleting blood request:", error);
     res.status(500).json({
-      message: "Failed to delete blood requests",
+      message: "Failed to delete blood request",
       error: (error as Error).message,
-    });  }
+    });
+  }
 };

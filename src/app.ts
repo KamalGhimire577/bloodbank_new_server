@@ -26,7 +26,8 @@ app.use("/api/auth",authDonorRoute)
 // bloood request route fro user 
 app.use("/api/blood",bloodRequestRoute)
 //find blood request by donor id
-app.get("/api/blood", findBloodRequestsByDonorId);
+app.get("/api/blood", findBloodRequestsByDonorId); //blood/request/fetchdatabyId/donoridfromuserid
+ //
 //find blood request by user id
 app.get("/api/blood", findBloodRequestsByUserId);
 //mark status complete

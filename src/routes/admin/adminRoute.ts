@@ -3,8 +3,7 @@ import type { Router } from "express";
 import {
   selectAllUser,
   selectAllDonor,
-   selectAllcompleateDonation
-  ,
+  selectAllCompleteDonation,
   selectAllBloodRequest,
   updateBloodRequestStatus,
   deleteUser,
@@ -21,7 +20,7 @@ router.use(isLoggedIn, isAdmin);
 // Fetch all data
 router.get("/users", selectAllUser); // Get all users
 router.get("/donors", selectAllDonor); // Get all donors
-router.get("/donations", selectAllcompleateDonation); // Get all completed donations
+router.get("/donations", selectAllCompleteDonation); // Get all completed donations
 router.get("/blood-requests", selectAllBloodRequest); // Get all blood requests
 
 // Update blood request status
@@ -30,6 +29,6 @@ router.put("/blood-requests/:id", updateBloodRequestStatus);
 // Delete operations
 router.delete("/delete-user/:id", deleteUser); // Delete a user by ID
 router.delete("/delete-donor/:id", deleteDonor); // Delete a donor by ID
-router.delete("/delete-blood-requests", deleteBloodRequests); // Delete blood requests by userId or donorId
+router.delete("/blood-request/:id", deleteBloodRequests);
 
 export default router;
