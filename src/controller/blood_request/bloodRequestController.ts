@@ -242,8 +242,10 @@ export const findBloodRequestsByUserId = async (
         br.createdAt AS request_date,
 
         d.id AS donor_id,
-
-        CONCAT_WS(', ', d.province, d.district, d.city) AS donor_full_address,
+        d.province,
+        d.district,
+        d.city,
+        
 
         u.username AS donor_username,
         u.phoneNumber AS donor_phone

@@ -3,12 +3,15 @@
     import {QueryTypes} from "sequelize"
    import type { IextendedRequest } from "../../middleware/types.js";
    
- const fetchAllEligibleDonors = async (req: Request, res: Response) => {
-   try {
-     const donors = await sequelize.query(
-       `
+const fetchAllEligibleDonors = async (req: Request | IextendedRequest, res: Response) => {
+  try {
+    const currentUserId = (req as IextendedRequest).user?.id || null;
+    
+    const donors = await sequelize.query(
+      `
       SELECT
         d.id AS donorId,
+        d.user_id AS userId,
         u.userName AS donorName,
         u.email,
         u.phoneNumber,
@@ -19,25 +22,30 @@
       FROM donor d
       JOIN users u 
         ON d.user_id = u.id
-      WHERE d.next_eligible_date IS NULL
-         OR d.next_eligible_date <= CURRENT_DATE
+      WHERE 
+        (d.next_eligible_date IS NULL 
+        OR d.next_eligible_date <= CURRENT_DATE)
       ORDER BY d.id DESC
       `,
-       { type: QueryTypes.SELECT }
-     );
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
 
-     res.status(200).json({
-       message: "Eligible donors fetched",
-       data: donors,
-     });
-   } catch (error) {
-     console.error("Error fetching eligible donors:", error);
-     res.status(500).json({
-       message: "Something went wrong",
-       error: (error as Error).message,
-     });
-   }
- };
+    res.status(200).json({
+      message: "Eligible donors fetched",
+      data: donors,
+      currentUserId
+    });
+  } catch (error) {
+    console.error("Error fetching eligible donors:", error);
+    res.status(500).json({
+      message: "Something went wrong",
+      error: (error as Error).message,
+    });
+  }
+};
+
 
 
    const searchEligibleDonors = async (req: Request, res: Response) => {
